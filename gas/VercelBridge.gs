@@ -27,6 +27,13 @@ function doPost(e) {
         isAdmin: false,
         error: null
       };
+    } else if (request.action === 'getCalendarEvent') {
+      var eventId = String((request.payload || {}).eventId || '');
+      if (!/^EVT[0-9]{1,12}$/.test(eventId)) throw new Error('Invalid event ID');
+      var source = getInitialData();
+      var found = (source.allEvents || []).filter(function(x){return x.id === eventId;})[0];
+      if (!found) throw new Error('Event not found');
+      result = {id:found.id,title:found.title,date:found.date,description:found.description};
     } else if (request.action === 'submitResponse') {
       result = submitResponse(request.payload || {});
     } else {
