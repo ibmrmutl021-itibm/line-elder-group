@@ -748,10 +748,10 @@
       const shortUrl = origin.origin + '/api/calendar?id=' + encodeURIComponent(eventId);
       const d = form.date.split('-');
       const date = d.length === 3 ? d[2] + '/' + d[1] + '/' + d[0] : form.date;
-      return '📣 ประกาศกิจกรรม\\n\\n📌 ' + form.title.trim() +
-        '\\n📅 วันที่: ' + date +
-        (form.description.trim() ? '\\n📝 ' + form.description.trim() : '') +
-        '\\n\\n📅 เพิ่มลง Google Calendar (กดลิงก์แล้วบันทึก):\\n' + shortUrl;
+      return '📣 ประกาศกิจกรรม\n\n📌 ' + form.title.trim() +
+        '\n📅 วันที่: ' + date +
+        (form.description.trim() ? '\n📝 ' + form.description.trim() : '') +
+        '\n\n📅 เพิ่มลง Google Calendar (กดลิงก์แล้วบันทึก):\n' + shortUrl;
     }
     document.getElementById('publicCalendarSiteUrl').value=localStorage.getItem('lineGroupCalendarBaseUrl') || '';
     async function copyAnnouncement() {
