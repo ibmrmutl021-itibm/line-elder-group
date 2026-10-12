@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <base target="_top">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Sarabun", sans-serif;
+      background-color: #F8F9FA;
+      color: #2D3748;
+      padding: 12px;
+      font-size: 1.35rem;
+    }
+    .card-box {
+      background: #FFFFFF;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .btn-senior {
+      font-size: 1.5rem;
+      font-weight: bold;
+      padding: 19px 20px; min-height: 62px;
+      border-radius: 14px;
+      width: 100%;
+      margin-bottom: 12px;
+    }
+    .btn-size {
+      font-size: 1.4rem;
+      font-weight: bold;
+      padding: 14px;
+      border-radius: 12px;
+      margin-bottom: 10px;
+    }
+    .select-senior, .input-senior {
+      font-size: 1.35rem;
+      padding: 12px;
+      border-radius: 12px;
+    }
+    .nav-pills .nav-link {
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+    .sub-nav .nav-link {
+      font-size: 1rem;
+      padding: 6px 12px;
+    }
+    .alert-answered {
+      border-radius: 12px;
+      border-left: 6px solid #0d6efd;
+    }
+
+    .dialog-overlay[hidden] {display:none!important}
+    .dialog-overlay {position:fixed;inset:0;z-index:99999;background:rgba(16,24,40,.7);display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
+    .dialog-panel {box-sizing:border-box;background:white;width:min(100%,480px);max-height:calc(100dvh - 32px);overflow-y:auto;border-radius:22px;padding:26px 22px;text-align:center;box-shadow:0 16px 55px rgba(0,0,0,.3);font-size:1.25rem}
+    .dialog-panel h2 {font-size:1.7rem;font-weight:800;line-height:1.4;color:#123b75}
+    .dialog-panel p {font-size:1.27rem;line-height:1.7;white-space:pre-line;overflow-wrap:anywhere;margin:18px 0}
+    .dialog-symbol {font-size:2.5rem}
+    .dialog-actions {display:flex;gap:12px}
+    .dialog-actions .btn {flex:1;min-width:0;font-size:1.27rem;padding:14px 7px;margin:0;min-height:60px}
+    @media(max-width:340px){.dialog-actions {flex-direction:column}}
+
+    /* Mobile first: fill phone width and use large touch targets. */
+    html { font-size: 18px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+    body { margin:0; padding: max(8px, env(safe-area-inset-top)) 8px max(20px, env(safe-area-inset-bottom)); line-height:1.55; }
+    .senior-layout { width:100%; max-width:780px; margin:auto; padding:0; }
+    .senior-layout .card-box { width:100%; padding:18px 16px; margin-bottom:14px; border-radius:16px; }
+    .senior-layout .form-label { font-size:1.15rem!important; line-height:1.45; }
+    .senior-layout select, .senior-layout input, .senior-layout textarea { font-size:1.12rem!important; min-height:56px; }
+    .senior-layout .btn-senior { font-size:1.25rem; min-height:66px; padding:16px 12px; }
+    .senior-layout #eventTitle {font-size:1.45rem; line-height:1.35;}
+    .senior-layout #eventDate, .senior-layout #eventDesc {font-size:1.12rem!important;}
+    .senior-layout #responseCounts {font-size:1.08rem;}
+    .senior-layout #responseDetails summary {font-size:1.05rem; padding:6px 0;}
+    .senior-layout #responseNames li {font-size:1.06rem; line-height:1.65;}
+    .senior-layout #tabMenu {margin-bottom:12px!important}
+    .senior-layout #tabMenu .nav-item {width:100%}
+    .senior-layout #tabMenu .nav-link {width:100%; padding:14px 10px; font-size:1.18rem;}
+    @media (min-width: 768px) {
+      body {padding:24px;}
+      .senior-layout .card-box {padding:24px;}
+    }
+    @media (max-width: 380px) {
+      html {font-size:17px;}
+      .senior-layout .card-box {padding:16px 12px;}
+    }
+  </style>
+<style>body #tabMenu .nav-item:nth-child(2), body #tab-admin-content {display:none!important}</style></head>
+<body>
+
+  <div class="container senior-layout">
+    
+    <!-- เมนูหลัก -->
+    <ul class="nav nav-pills nav-fill mb-3" id="tabMenu">
+      <li class="nav-item">
+        <button class="nav-link active" onclick="switchMainTab('member')">📋 ร่วมกิจกรรม</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" onclick="return false">⚙️ จัดการกิจกรรม</button>
+      </li>
+    </ul>
+
+    <!-- ตัวแจ้งสถานะการโหลด -->
+    <div id="loadingStatus" class="card-box text-center py-4">
+      <div class="spinner-border text-primary mb-2" role="status"></div>
+      <div class="text-muted fw-bold">กำลังเชื่อมต่อข้อมูล Google Sheet...</div>
+    </div>
+
+    <!-- ส่วนเนื้อหาหลัก -->
+    <div id="mainContent" style="display: none;">
+      
+      <!-- ================= 1. หน้าสำหรับสมาชิก ================= -->
+      <div id="tab-member-content">
+        
+        <div id="noDataBox" class="card-box text-center py-5" style="display: none;">
+          <h2 class="text-muted fw-bold mb-3">📭 ไม่มีกิจกรรมที่เปิดอยู่</h2>
+          <p class="text-secondary mb-3">ขณะนี้ยังไม่มีกิจกรรมที่เปิดรับ (สถานะ Open) หรือกิจกรรมทั้งหมดปิดรับแล้ว</p>
+          <button class="btn btn-outline-primary" onclick="return false">👉 ไปที่แท็บแอดมินเพื่อเปิดรับกิจกรรม (Set Open)</button>
+        </div>
+
+        <div id="memberApp" style="display: none;">
+          
+          <!-- เลือกกิจกรรมที่ยัง Open -->
+          <div class="card-box pb-3" id="activeEventSelectorBox">
+            <label class="form-label fw-bold text-primary mb-2" style="font-size: 1.2rem;">
+              📌 เลือกกิจกรรมที่ต้องการร่วม:
+            </label>
+            <select class="form-select select-senior" id="activeEventSelect" onchange="onSelectActiveEvent(this.value)">
+            </select>
+          </div>
+
+          <!-- รายชื่อผู้ตอบ: แสดงหลังเลือกกิจกรรม -->
+          <section class="card-box" id="memberResponseSummary" aria-live="polite">
+            <h4 class="fw-bold text-primary">👥 สถานะการตอบกิจกรรม</h4>
+            <div id="responseCounts" class="mb-2"></div>
+            <details id="responseDetails" class="border rounded p-3">
+              <summary class="fw-bold" style="cursor:pointer;min-height:44px">แตะเพื่อดูรายชื่อผู้ตอบและผู้ยังไม่ตอบ</summary>
+              <div id="responseNames" class="mt-3"></div>
+            </details>
+          </section>
+
+          <!-- รายละเอียดกิจกรรม -->
+          <div class="card-box border-top border-5 border-primary">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="badge bg-success" id="eventBadge" style="font-size:0.95rem;">Open</span>
+              <span class="text-muted small" id="eventIdLabel"></span>
+            </div>
+            <h3 class="fw-bold text-primary mb-2" id="eventTitle">...</h3>
+            <p class="text-secondary mb-1" id="eventDate" style="font-size: 1.15rem;"></p>
+            <p id="eventDesc" class="mt-2 text-dark" style="font-size: 1.15rem; line-height: 1.5;"></p>
+
+            <div id="calendarArea" style="display: none;" class="mt-3">
+              <a id="btnCalendar" href="#" target="_blank" class="btn btn-warning btn-senior text-dark">
+                📅 เพิ่มลงปฏิทินมือถือ (เตือนความจำ)
+              </a>
+            </div>
+          </div>
+
+          <!-- กล่องเลือกลงชื่อและกดคำตอบ -->
+          <div class="card-box" id="voteArea">
+            <label class="form-label fw-bold text-secondary mb-2" style="font-size: 1.35rem;">
+              👤 1. ค้นหาและเลือกชื่อของคุณ:
+            </label>
+            
+            <div class="input-group mb-2">
+              <span class="input-group-text bg-light">🔍</span>
+              <input type="text" class="form-control input-senior" id="memberSearchInput" placeholder="พิมพ์ชื่อของท่าน" autocomplete="off" oninput="filterMembers(this.value)">
+            </div>
+            
+            <select class="form-select select-senior mb-3" id="memberSelect" onchange="checkMemberAnswer(this.value)">
+              <option value="">-- แตะเพื่อเลือกชื่อของคุณ --</option>
+            </select>
+
+            <!-- กล่องแสดงผลเมื่อตอบแล้ว -->
+            <div id="answeredNotice" class="alert alert-info alert-answered mb-4" style="display: none;">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold mb-1 text-primary">ℹ️ ท่านได้ส่งคำตอบแล้ว</h6>
+                  <div>คำตอบปัจจุบัน: <strong class="badge bg-primary fs-6" id="currentChoiceBadge">-</strong></div>
+                  <small class="text-muted" id="currentAnswerTime"></small>
+                </div>
+              </div>
+              <hr class="my-2">
+              <small class="text-dark">💡 หากต้องการเปลี่ยนใจ สามารถแตะเลือกคำตอบใหม่ด้านล่างเพื่อแก้ไขได้ค่ะ</small>
+            </div>
+
+            <label class="form-label fw-bold text-secondary mb-2" style="font-size: 1.35rem;">
+              👉 2. แตะคำตอบของคุณ:
+            </label>
+
+            <!-- ตัวเลือก: เข้าร่วม / ไม่เข้าร่วม -->
+            <div id="choiceAttend" style="display: none;">
+              <button class="btn btn-success btn-senior" onclick="chooseOption('เข้าร่วม')">
+                🌸 เข้าร่วม
+              </button>
+              <button class="btn btn-outline-danger btn-senior" onclick="chooseOption('ไม่เข้าร่วม')">
+                🙏 ไม่เข้าร่วม
+              </button>
+            </div>
+
+            <!-- ตัวเลือก: เห็นชอบ / ไม่เห็นชอบ -->
+            <div id="choiceVote" style="display: none;">
+              <button class="btn btn-primary btn-senior" onclick="chooseOption('เห็นชอบ')">
+                👍 เห็นชอบ
+              </button>
+              <button class="btn btn-outline-secondary btn-senior" onclick="chooseOption('ไม่เห็นชอบ')">
+                👎 ไม่เห็นชอบ
+              </button>
+            </div>
+
+            <!-- ตัวเลือก: ไซส์เสื้อ (S, M, L, XL, 2XL) -->
+            <div id="choiceShirts" style="display: none;">
+              <div class="row g-2">
+                <div class="col-6"><button class="btn btn-primary w-100 btn-size" onclick="chooseOption('S')">ไซส์ S</button></div>
+                <div class="col-6"><button class="btn btn-primary w-100 btn-size" onclick="chooseOption('M')">ไซส์ M</button></div>
+                <div class="col-6"><button class="btn btn-primary w-100 btn-size" onclick="chooseOption('L')">ไซส์ L</button></div>
+                <div class="col-6"><button class="btn btn-primary w-100 btn-size" onclick="chooseOption('XL')">ไซส์ XL</button></div>
+                <div class="col-12"><button class="btn btn-primary w-100 btn-size" onclick="chooseOption('2XL')">ไซส์ 2XL</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ================= 2. หน้าสำหรับแอดมิน ================= -->
+      <div id="tab-admin-content" style="display: none;">
+        
+        <ul class="nav nav-tabs sub-nav mb-3">
+          <li class="nav-item">
+            <button class="nav-link active" id="subTab1" onclick="switchAdminSubTab('events')">📑 กิจกรรม (Open / Close)</button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" id="subTab2" onclick="switchAdminSubTab('history')">📊 ผลการลงชื่อ</button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" id="subTab3" onclick="switchAdminSubTab('members')">👥 สมาชิก (<span id="memberCount">0</span>)</button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" id="subTab4" onclick="switchAdminSubTab('create')">➕ สร้างงาน/สมาชิก</button>
+          </li>
+        </ul>
+
+        <!-- 1. กิจกรรม & สลับ Open / Close -->
+        <div id="admin-events-pane">
+          <div class="card-box">
+            <h5 class="fw-bold text-primary mb-3">📑 รายการกิจกรรม & สถานะ Open / Close</h5>
+            <div id="adminEventsTableArea"></div>
+          </div>
+        </div>
+
+        <!-- 2. ดูผลการลงชื่อ -->
+        <div id="admin-history-pane" style="display: none;">
+          <div class="card-box">
+            <h5 class="fw-bold text-secondary mb-3">📅 ดูรายชื่อและคำตอบตามกิจกรรม</h5>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">เลือกกิจกรรม:</label>
+              <select class="form-select" id="eventHistorySelect" onchange="loadEventResponses(this.value)">
+                <option value="">-- เลือกกิจกรรม --</option>
+              </select>
+            </div>
+            <div id="responseSummaryArea" class="mt-3">
+              <p class="text-muted small">กำลังดึงข้อมูลสรุป...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. รายชื่อสมาชิกทั้งหมด -->
+        <div id="admin-members-pane" style="display: none;">
+          <div class="card-box">
+            <h5 class="fw-bold text-primary mb-2">👥 รายชื่อสมาชิกทั้งหมด</h5>
+            <div class="mb-3">
+              <input type="text" class="form-control form-control-sm" placeholder="พิมพ์ค้นหาชื่อสมาชิก..." oninput="filterAdminMembers(this.value)">
+            </div>
+            <div id="membersTableArea"></div>
+          </div>
+        </div>
+
+        <!-- 4. สร้างกิจกรรม / เพิ่มสมาชิก -->
+        <div id="admin-create-pane" style="display: none;">
+          <div class="card-box">
+            <h5 class="fw-bold text-success mb-3">📢 สร้างกิจกรรมใหม่</h5>
+            <form id="createEventForm">
+              <div class="mb-3">
+                <label class="form-label small fw-bold">ประเภทกิจกรรม:</label>
+                <select class="form-select" id="aeType" required>
+                  <option value="เข้าร่วม">🌸 เข้าร่วม / ไม่เข้าร่วม</option>
+                  <option value="ระบุ Size">👕 สั่งจองเสื้อ (ระบุ Size)</option>
+                  <option value="เห็นชอบ/ไม่เห็นชอบ">🗳️ เห็นชอบ / ไม่เห็นชอบ</option>
+                  <option value="ทำบุญ">🙏 ทำบุญวันถึงแก่กรรม</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-bold">ชื่องาน/กิจกรรม:</label>
+                <input type="text" class="form-control" id="aeTitle" placeholder="เช่น กิจกรรมเดินวิ่ง, ประชุมประจำปี" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-bold">วันที่จัดงาน:</label>
+                <input type="date" class="form-control" id="aeDate" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-bold">สถานะเริ่มต้น:</label>
+                <select class="form-select" id="aeStatus">
+                  <option value="Open">Open</option>
+                  <option value="Close">Close</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-bold">รายละเอียด:</label>
+                <textarea class="form-control" id="aeDesc" rows="2" placeholder="สถานที่ เวลา หรือหมายเหตุ"></textarea>
+              </div>
+              <button type="submit" class="btn btn-success w-100 fw-bold py-2" id="btnCreate">บันทึก & เพิ่มลงปฏิทิน</button>
+            </form>
+            <section id="announcementPanel" class="mt-3 p-3 rounded border border-success" style="display:none" aria-live="polite">
+              <h5 class="fw-bold">📣 ข้อความประกาศสำหรับ LINE</h5>
+              <p class="small">สร้างกิจกรรมสำเร็จแล้ว กดคัดลอกและนำไปวางในแชต LINE</p>
+              <textarea id="announcementText" class="form-control input-senior mb-2" rows="8" readonly aria-label="ข้อความประกาศ"></textarea>
+              <button type="button" class="btn btn-primary btn-senior" id="copyAnnouncementBtn">📋 คัดลอกข้อความสำหรับ LINE</button>
+              <div id="copyAnnouncementStatus" class="small" role="status"></div>
+            </section>
+          </div>
+
+          <div class="card-box">
+            <h5 class="fw-bold text-primary mb-3">👥 บันทึกสมาชิกใหม่ & วันถึงแก่กรรม</h5>
+            <form id="addMemberForm">
+              <div class="mb-2">
+                <input type="text" class="form-control" id="amName" placeholder="ชื่อ-นามสกุล สมาชิก" required>
+              </div>
+              <div class="mb-2">
+                <label class="form-label small text-muted">วันถึงแก่กรรม (ถ้ามี - จะลงปฏิทินทำซ้ำทุกปี):</label>
+                <input type="date" class="form-control" id="amDeathDate">
+              </div>
+              <div class="mb-2">
+                <input type="text" class="form-control" id="amContact" placeholder="ผู้ติดต่อ/ความสัมพันธ์">
+              </div>
+              <div class="mb-3">
+                <input type="tel" inputmode="tel" class="form-control" id="amPhone" placeholder="เบอร์โทรศัพท์">
+              </div>
+              <button type="submit" class="btn btn-primary w-100 fw-bold py-2" id="btnAddMember">บันทึกรายชื่อ</button>
+            </form>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+
+  <div id="appDialog" class="dialog-overlay" role="presentation" hidden>
+    <section class="dialog-panel" role="dialog" aria-modal="true" aria-labelledby="dialogTitle" aria-describedby="dialogMessage" tabindex="-1">
+      <div id="dialogSymbol" class="dialog-symbol">❓</div>
+      <h2 id="dialogTitle">ยืนยันรายการ</h2>
+      <p id="dialogMessage"></p>
+      <div class="dialog-actions">
+        <button id="dialogCancel" type="button" class="btn btn-outline-secondary btn-senior">ย้อนกลับ</button>
+        <button id="dialogOK" type="button" class="btn btn-primary btn-senior">ยืนยัน</button>
+      </div>
+    </section>
+  </div>
+<script>
+// Adapter: same frontend calls, transported via Vercel API rather than google.script.run.
+window.google={script:{get run(){
+  let success=()=>{}, failure=()=>{};
+  const runner={
+    withSuccessHandler(fn){success=fn;return runner;},
+    withFailureHandler(fn){failure=fn;return runner;}
+  };
+  for(const name of ['getInitialData','submitResponse','toggleEventStatus','createNewEvent','addMember','getEventResponses']){
+    runner[name]=(...args)=>{
+      const payload= name==='toggleEventStatus'?{eventId:args[0],newStatus:args[1]}:
+        name==='getEventResponses'?{eventId:args[0]}:args[0]||{};
+      fetch('/api/gateway',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:name,payload})})
+        .then(async response=>{const obj=await response.json();if(!response.ok)throw Error(obj.error||'Server error');return obj.result;})
+        .then(success).catch(failure);
+    };
+  }
+  return runner;
+}}};
+</script>
+  <script>
+
+    // Accessible in-page dialogs (replaces native confirm/alert blocked in some LINE/mobile webviews).
+    let dialogResolve = null;
+    let dialogPreviousFocus = null;
+    function appDialog(message, options={}) {
+      return new Promise(resolve => {
+        const overlay = document.getElementById('appDialog');
+        if (dialogResolve) { dialogResolve(false); }
+        dialogResolve=resolve; dialogPreviousFocus=document.activeElement;
+        document.getElementById('dialogSymbol').textContent=options.symbol || (options.confirm ? '❓' : 'ℹ️');
+        document.getElementById('dialogTitle').textContent=options.title || (options.confirm ? 'กรุณายืนยัน' : 'แจ้งให้ทราบ');
+        document.getElementById('dialogMessage').textContent=String(message);
+        document.getElementById('dialogCancel').hidden=!options.confirm;
+        document.getElementById('dialogOK').textContent=options.confirm?'ยืนยัน':'ตกลง';
+        overlay.hidden=false; document.body.style.overflow='hidden';
+        document.getElementById('dialogOK').focus();
+      });
+    }
+    function closeAppDialog(answer) {
+      const resolve=dialogResolve;if (!resolve) return;
+      dialogResolve=null;
+      document.getElementById('appDialog').hidden=true;
+      document.body.style.overflow='';
+      if(dialogPreviousFocus?.isConnected) dialogPreviousFocus.focus();
+      resolve(answer);
+    }
+    document.getElementById('dialogOK').addEventListener('click',()=>closeAppDialog(true));
+    document.getElementById('dialogCancel').addEventListener('click',()=>closeAppDialog(false));
+    document.addEventListener('keydown',e=>{
+      if(document.getElementById('appDialog').hidden)return;
+      if(e.key==='Escape'){e.preventDefault();closeAppDialog(false);}
+      if(e.key==='Tab'){
+        const controls=[...document.querySelectorAll('#appDialog button:not([hidden])')];
+        const i=controls.indexOf(document.activeElement);
+        if(e.shiftKey&&i<=0){e.preventDefault();controls[controls.length-1].focus();}
+        else if(!e.shiftKey&&i===controls.length-1){e.preventDefault();controls[0].focus();}
+      }
+    });
+
+    let globalData = null;
+    let currentEvent = null;
+
+    window.onload = function() {
+      fetchData();
+    };
+
+    function showLoadError(message) {
+      const box = document.getElementById('loadingStatus');
+      box.style.display = 'block';
+      const info = document.createElement('div');
+      info.className = 'alert alert-danger mb-0';
+      info.textContent = 'ไม่สามารถแสดงข้อมูล: ' + String(message || 'ไม่ทราบสาเหตุ') + ' กรุณาแจ้งผู้ดูแลระบบ';
+      box.replaceChildren(info);
+      document.getElementById('mainContent').style.display = 'none';
+    }
+
+    function fetchData() {
+      google.script.run
+        .withSuccessHandler(function(data) {
+          if (!data || data.error) {
+            showLoadError(data && data.error || 'ไม่ได้รับข้อมูลจากระบบ');
+            return;
+          }
+          try {
+            globalData = data;
+            renderPage(data);
+            document.getElementById('loadingStatus').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+          } catch (err) {
+            console.error('LineGroup render failed:', err);
+            showLoadError(err.message || String(err));
+          }
+        })
+        .withFailureHandler(function(err) { showLoadError(err && err.message || String(err)); })
+        .getInitialData();
+    }
+
+    function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c] || "&#39;")); }
+    // Always display Gregorian dates in DD/MM/YYYY, regardless of Sheets display format.
+    function formatThaiDate(value) {
+      if (value === null || value === undefined || value === '' || value === '-') return '-';
+      const s = String(value).trim();
+      let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:T.*)?$/);
+      if (m) return String(Number(m[3])).padStart(2, '0') + '/' + String(Number(m[2])).padStart(2, '0') + '/' + m[1];
+      m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+      if (m) {
+        const y = Number(m[3]) > 2400 ? Number(m[3]) - 543 : Number(m[3]);
+        return String(Number(m[1])).padStart(2, '0') + '/' + String(Number(m[2])).padStart(2, '0') + '/' + y;
+      }
+      return s;
+    }
+
+    function renderPage(data) {
+      document.querySelectorAll("#tabMenu .nav-item")[1].style.display = "";
+      const activeList = data.activeEvents || [];
+      
+      if (activeList.length === 0) {
+        document.getElementById("noDataBox").style.display = "block";
+        document.getElementById("memberApp").style.display = "none";
+      } else {
+        document.getElementById("noDataBox").style.display = "none";
+        document.getElementById("memberApp").style.display = "block";
+
+        const eventSelect = document.getElementById("activeEventSelect");
+        eventSelect.innerHTML = "";
+        activeList.forEach(function(e) {
+          eventSelect.innerHTML += '<option value="' + esc(e.id) + '">' + esc(e.title) + ' (' + esc(formatThaiDate(e.date)) + ')</option>';
+        });
+
+        currentEvent = activeList[0];
+        displaySelectedEvent(currentEvent);
+        renderMemberOptions(data.members || []);
+        renderMemberResponseSummary();
+      }
+
+      document.getElementById("memberCount").innerText = (data.members || []).length;
+      renderAdminEventsTable(data.allEvents || []);
+      renderMembersTable(data.members || []);
+      renderHistoryDropdown(data.allEvents || []);
+    }
+
+    function renderMemberResponseSummary() {
+      const counts = document.getElementById('responseCounts');
+      const area = document.getElementById('responseNames');
+      const details = document.getElementById('responseDetails');
+      if (!counts || !area || !currentEvent || !globalData) return;
+      const members = globalData.members || [];
+      const answerMap = globalData.userResponses || {};
+      const groups = new Map();
+      const unanswered = [];
+      members.forEach(m => {
+        const record = answerMap[currentEvent.id + '__' + m.id];
+        if (record && record.choice) {
+          const key = String(record.choice);
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key).push(m.name);
+        } else unanswered.push(m.name);
+      });
+      const responded = members.length - unanswered.length;
+      counts.innerHTML = '<div class="fs-5 fw-bold">ตอบแล้ว ' + responded + ' / ' + members.length +
+        ' คน · ยังไม่ตอบ ' + unanswered.length + ' คน</div>' +
+        Array.from(groups.entries()).map(([choice, names]) =>
+          '<span class="badge bg-primary m-1 p-2" style="font-size:1rem">' +
+          esc(choice) + ': ' + names.length + ' คน</span>').join('');
+      const makeGroup = (title, names) =>
+        '<div class="mt-3"><div class="fw-bold fs-5">' + esc(title) + ' (' + names.length + ' คน)</div>' +
+        (names.length ? '<ol class="mb-1 ps-4">' + names.map(name =>
+          '<li class="py-1">' + esc(name) + '</li>').join('') + '</ol>' :
+          '<div class="text-muted">ไม่มีรายชื่อ</div>') + '</div>';
+      area.innerHTML = Array.from(groups.entries()).map(([choice, names]) =>
+        makeGroup(choice, names)).join('') + makeGroup('ยังไม่ตอบ', unanswered);
+      details.open = false;
+    }
+
+    function onSelectActiveEvent(eventId) {
+      if (!globalData || !globalData.activeEvents) return;
+      const found = globalData.activeEvents.find(function(e) { return e.id === eventId; });
+      if (found) {
+        currentEvent = found;
+        displaySelectedEvent(currentEvent);
+        renderMemberResponseSummary();
+        // ตรวจสอบคำตอบของชื่อที่กำลังเลือกอยู่
+        const currentMember = document.getElementById("memberSelect").value;
+        checkMemberAnswer(currentMember);
+      }
+    }
+
+    function displaySelectedEvent(ev) {
+      document.getElementById("eventIdLabel").innerText = ev.id;
+      
+      const badge = document.getElementById("eventBadge");
+      badge.innerText = ev.status;
+      badge.className = ev.isClosed ? "badge bg-danger" : "badge bg-success";
+
+      document.getElementById("eventTitle").innerText = ev.title;
+      document.getElementById("eventDate").innerText = "📅 วันที่จัดงาน: " + formatThaiDate(ev.date);
+      document.getElementById("eventDesc").innerText = ev.description;
+
+      document.getElementById("choiceAttend").style.display = "none";
+      document.getElementById("choiceVote").style.display = "none";
+      document.getElementById("choiceShirts").style.display = "none";
+      document.getElementById("calendarArea").style.display = "none";
+       document.getElementById("voteArea").style.display = "block";
+
+      if (ev.type === "shirts") {
+        document.getElementById("choiceShirts").style.display = "block";
+      } else if (ev.type === "vote") {
+        document.getElementById("choiceVote").style.display = "block";
+      } else if (ev.type === "memorial") {
+        document.getElementById("calendarArea").style.display = "block";
+        document.getElementById("voteArea").style.display = "none";
+        const dateStr = (ev.date || "").replace(/-/g, "");
+        const calUrl = "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + encodeURIComponent(ev.title) + "&dates=" + dateStr + "/" + (function(){const d=new Date(ev.date+"T12:00:00");d.setDate(d.getDate()+1);return d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");})() + "&details=" + encodeURIComponent(ev.description) + "&recur=RRULE:FREQ=YEARLY";
+        document.getElementById("btnCalendar").href = calUrl;
+      } else {
+        document.getElementById("choiceAttend").style.display = "block";
+      }
+    }
+
+    function filterMembers(keyword) {
+      if (!globalData || !globalData.members) return;
+      const term = keyword.trim().toLowerCase();
+      const filtered = globalData.members.filter(function(m) {
+        return m.name.toLowerCase().includes(term);
+      });
+      renderMemberOptions(filtered);
+    }
+
+    function renderMemberOptions(members) {
+      const select = document.getElementById("memberSelect");
+      select.innerHTML = '<option value="">-- แตะเพื่อเลือกชื่อของคุณ --</option>';
+      if (members && members.length > 0) {
+        members.forEach(function(m) {
+          select.innerHTML += '<option value="' + esc(m.id) + '">' + esc(m.name) + '</option>';
+        });
+      } else {
+        select.innerHTML = '<option value="">-- ไม่พบชื่อที่ค้นหา --</option>';
+      }
+      document.getElementById("answeredNotice").style.display = "none";
+    }
+
+    // ฟังก์ชันตรวจสอบว่าสมาชิกตอบกิจกรรมนี้ไปแล้วหรือยัง
+    function checkMemberAnswer(memberName) {
+      const noticeBox = document.getElementById("answeredNotice");
+      if (!memberName || !currentEvent || !globalData || !globalData.userResponses) {
+        noticeBox.style.display = "none";
+        return;
+      }
+
+      const key = currentEvent.id + "__" + memberName;
+      const record = globalData.userResponses[key];
+
+      if (record && record.choice) {
+        document.getElementById("currentChoiceBadge").innerText = record.choice;
+        document.getElementById("currentAnswerTime").innerText = "ลงชื่อเมื่อ: " + (record.time || "-");
+        noticeBox.style.display = "block";
+      } else {
+        noticeBox.style.display = "none";
+      }
+    }
+
+    // กดเลือกคำตอบ
+    async function chooseOption(choice) {
+      const memberName = document.getElementById("memberSelect").value;
+      if (!memberName) {
+        appDialog("⚠️ กรุณาค้นหาและเลือกชื่อก่อนค่ะ");
+        return;
+      }
+
+      if (!currentEvent || currentEvent.isClosed) {
+        appDialog("⚠️ กิจกรรมนี้ปิดรับลงชื่อแล้ว (Close)");
+        return;
+      }
+
+      const key = currentEvent.id + "__" + memberName;
+      const hasAnswered = globalData.userResponses && globalData.userResponses[key];
+      let confirmMsg = "";
+
+      if (hasAnswered) {
+        confirmMsg = `คุณ "${memberName}" ได้เคยตอบว่า [ ${hasAnswered.choice} ] ไว้แล้ว\nต้องการ "เปลี่ยนคำตอบใหม่" เป็น [ ${choice} ] ใช่หรือไม่?`;
+      } else {
+        confirmMsg = `คุณ "${memberName}" ยืนยันเลือก [ ${choice} ] ในกิจกรรม "${currentEvent.title}" ใช่หรือไม่?`;
+      }
+
+      if (await appDialog(confirmMsg, {confirm:true,title:"ยืนยันคำตอบของท่าน"})) {
+        const choiceButtons = document.querySelectorAll('#choiceAttend button, #choiceVote button, #choiceShirts button');
+        choiceButtons.forEach(b => b.disabled = true);
+        google.script.run
+          .withFailureHandler(function(err){choiceButtons.forEach(b => b.disabled = false);appDialog("บันทึกไม่สำเร็จ กรุณาลองใหม่");})
+          .withSuccessHandler(function(res) {
+            choiceButtons.forEach(b => b.disabled = false);
+            if (res && res.success) {
+              // อัปเดตข้อมูลการตอบในหน่วยความจำหน้าบ้าน
+              if (!globalData.userResponses) globalData.userResponses = {};
+              globalData.userResponses[key] = { choice: res.newChoice, time: res.time };
+
+              if (res.updated) {
+                appDialog(`✅ แก้ไขคำตอบเป็น [ ${choice} ] เรียบร้อยแล้ว ขอบคุณค่ะ!`);
+              } else {
+                appDialog(`✅ บันทึกคำตอบ [ ${choice} ] เรียบร้อยแล้ว ขอบคุณค่ะ!`);
+              }
+
+              // แสดงกล่องแจ้งเตือนคำตอบที่อัปเดตแล้ว
+              checkMemberAnswer(memberName);
+              renderMemberResponseSummary();
+
+              // โหลดผลสรุปถ้าเปิดดูอยู่
+              loadEventResponses(currentEvent.id);
+            } else {
+              appDialog("เกิดข้อผิดพลาด: " + res.error);
+            }
+          })
+          .submitResponse({
+            eventId: currentEvent.id,
+            memberId: memberName,
+            choice: choice
+          });
+      }
+    }
+
+    function renderAdminEventsTable(events) {
+      const area = document.getElementById("adminEventsTableArea");
+      if (!events || events.length === 0) {
+        area.innerHTML = '<p class="text-muted">ยังไม่มีกิจกรรม</p>';
+        return;
+      }
+
+      let html = '<div class="table-responsive"><table class="table table-bordered table-sm small align-middle">';
+      html += '<thead class="table-light"><tr><th>ID</th><th>ชื่องาน</th><th>วันที่</th><th>สถานะ</th><th>การสลับสถานะ</th></tr></thead><tbody>';
+      
+      events.forEach(function(e) {
+        const isClosed = e.isClosed;
+        const statusBadge = isClosed 
+          ? '<span class="badge bg-danger">Close</span>' 
+          : '<span class="badge bg-success">Open</span>';
+
+        const safeId = /^[A-Za-z0-9_-]+$/.test(e.id) ? e.id : '';
+         const toggleBtn = isClosed
+          ? '<button class="btn btn-sm btn-outline-success" onclick="changeStatus(\'' + safeId + '\', \'Open\')">🔓 ตั้งเป็น Open</button>'
+          : '<button class="btn btn-sm btn-outline-danger" onclick="changeStatus(\'' + safeId + '\', \'Close\')">🔒 ตั้งเป็น Close</button>';
+
+        html += '<tr><td><span class="badge bg-light text-dark border">' + esc(e.id) + '</span></td>' +
+          '<td><strong>' + esc(e.title) + '</strong> <small class="text-muted">(' + esc(e.rawType) + ')</small></td>' +
+          '<td>' + esc(formatThaiDate(e.date)) + '</td>' +
+          '<td>' + statusBadge + '</td>' +
+          '<td>' + toggleBtn + '</td></tr>';
+      });
+
+      html += '</tbody></table></div>';
+      area.innerHTML = html;
+    }
+
+    async function changeStatus(eventId, newStatus) {
+      if (await appDialog('ต้องการเปลี่ยนสถานะกิจกรรม [' + eventId + '] เป็น "' + newStatus + '" ใช่หรือไม่?', {confirm:true,title:'ยืนยันเปลี่ยนสถานะ'})) {
+        document.getElementById("loadingStatus").style.display = "block";
+        document.getElementById("mainContent").style.display = "none";
+        google.script.run
+          .withFailureHandler(function(err){appDialog("เปลี่ยนสถานะไม่สำเร็จ กรุณาลองใหม่");fetchData();})
+          .withSuccessHandler(function(res) {
+            if(!res || !res.success){appDialog(res?.error || "เปลี่ยนสถานะไม่สำเร็จ");} fetchData();
+          })
+          .toggleEventStatus(eventId, newStatus);
+      }
+    }
+
+    function filterAdminMembers(keyword) {
+      if (!globalData || !globalData.members) return;
+      const term = keyword.trim().toLowerCase();
+      const filtered = globalData.members.filter(function(m) {
+        return m.name.toLowerCase().includes(term) || m.id.toLowerCase().includes(term) || m.contact.toLowerCase().includes(term);
+      });
+      renderMembersTable(filtered);
+    }
+
+    function renderMembersTable(members) {
+      const area = document.getElementById("membersTableArea");
+      if (!members || members.length === 0) {
+        area.innerHTML = '<p class="text-muted">ไม่พบข้อมูลสมาชิก</p>';
+        return;
+      }
+      let html = '<div class="table-responsive" style="max-height: 480px;"><table class="table table-bordered table-sm small align-middle">';
+      html += '<thead class="table-light sticky-top"><tr><th>ID</th><th>ชื่อ-นามสกุล</th><th>วันถึงแก่กรรม</th><th>ผู้ติดต่อ</th><th>เบอร์โทร</th></tr></thead><tbody>';
+      members.forEach(function(m) {
+        const isDeceased = m.deathDate && m.deathDate !== "-";
+        html += '<tr><td><span class="badge bg-light text-dark border">' + esc(m.id) + '</span></td>' +
+          '<td><strong>' + esc(m.name) + '</strong></td>' +
+          '<td class="' + (isDeceased ? 'text-danger fw-bold' : 'text-muted') + '">' + esc(formatThaiDate(m.deathDate)) + '</td>' +
+          '<td>' + esc(m.contact) + '</td>' +
+          '<td>' + esc(m.phone) + '</td></tr>';
+      });
+      html += '</tbody></table></div>';
+      area.innerHTML = html;
+    }
+
+    function renderHistoryDropdown(events) {
+      const select = document.getElementById("eventHistorySelect");
+      select.innerHTML = '<option value="">-- เลือกกิจกรรม --</option>';
+      if (!events || events.length === 0) return;
+      events.forEach(function(e) {
+        select.innerHTML += '<option value="' + esc(e.id) + '">' + esc(e.id) + ': ' + esc(e.title) + ' [' + e.status + ']</option>';
+      });
+
+      if (globalData.isAdmin) { select.value = events[0].id; loadEventResponses(events[0].id); }
+    }
+
+    function loadEventResponses(eventId) {
+      if (!eventId) return;
+      const area = document.getElementById("responseSummaryArea");
+      area.innerHTML = '<p class="text-muted">กำลังดึงข้อมูลสรุป...</p>';
+
+      google.script.run.withSuccessHandler(function(list) {
+        if (list && list.error) { area.textContent=list.error; return; }
+         if (!list || list.length === 0) {
+          area.innerHTML = '<div class="alert alert-warning py-2 mb-0">ยังไม่มีผู้ลงชื่อในกิจกรรมนี้</div>';
+          return;
+        }
+
+        const counts = {};
+        list.forEach(function(r) {
+          counts[r.choice] = (counts[r.choice] || 0) + 1;
+        });
+
+        let summaryBadges = '<div class="mb-3 p-2 bg-light rounded border">';
+        for (const key in counts) {
+          summaryBadges += '<span class="badge bg-primary me-2 p-2" style="font-size:0.95rem;">' + esc(key) + ': ' + counts[key] + ' คน</span>';
+        }
+        summaryBadges += '<span class="badge bg-dark p-2" style="font-size:0.95rem;">รวมทั้งหมด: ' + list.length + ' คน</span></div>';
+
+        let table = '<div class="table-responsive" style="max-height: 380px;"><table class="table table-striped table-sm small align-middle">';
+        table += '<thead class="table-light sticky-top"><tr><th>ชื่อสมาชิก</th><th>คำตอบ</th><th>เวลาที่บันทึกล่าสุด</th></tr></thead><tbody>';
+        list.forEach(function(r) {
+          table += '<tr><td><strong>' + esc(r.name) + '</strong></td><td><span class="badge bg-secondary">' + esc(r.choice) + '</span></td><td class="text-muted">' + esc(r.time) + '</td></tr>';
+        });
+        table += '</tbody></table></div>';
+
+        area.innerHTML = summaryBadges + table;
+      }).withFailureHandler(function(err){area.textContent=String(err);}).getEventResponses(eventId);
+    }
+
+    function switchMainTab(tab) {
+      
+      const btnMember = document.querySelectorAll("#tabMenu .nav-link")[0];
+      const btnAdmin = document.querySelectorAll("#tabMenu .nav-link")[1];
+      if (tab === 'member') {
+        btnMember.classList.add("active");
+        btnAdmin.classList.remove("active");
+        document.getElementById("tab-member-content").style.display = "block";
+        document.getElementById("tab-admin-content").style.display = "none";
+      } else {
+        btnMember.classList.remove("active");
+        btnAdmin.classList.add("active");
+        document.getElementById("tab-member-content").style.display = "none";
+        document.getElementById("tab-admin-content").style.display = "block";
+      }
+    }
+
+    function switchAdminSubTab(sub) {
+      const panes = ['events', 'history', 'members', 'create'];
+      panes.forEach(function(p, idx) {
+        document.getElementById("admin-" + p + "-pane").style.display = (p === sub) ? "block" : "none";
+        const btn = document.getElementById("subTab" + (idx + 1));
+        if (p === sub) btn.classList.add("active"); else btn.classList.remove("active");
+      });
+    }
+
+
+    // Google Calendar template uses exclusive end date for an all-day event.
+    function announcementForEvent(form) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(form.date)) throw new Error('กรุณาระบุวันที่จัดงาน');
+      const start = form.date.replace(/-/g, '');
+      const d = new Date(form.date + 'T12:00:00Z');
+      if (Number.isNaN(d.getTime()) || d.toISOString().slice(0,10) !== form.date) throw new Error('วันที่กิจกรรมไม่ถูกต้อง');
+      d.setUTCDate(d.getUTCDate() + 1);
+      const end = d.toISOString().slice(0,10).replace(/-/g, '');
+      const url = new URL('https://calendar.google.com/calendar/render');
+      url.searchParams.set('action', 'TEMPLATE');
+      url.searchParams.set('text', form.title.trim());
+      url.searchParams.set('dates', start + '/' + end);
+      url.searchParams.set('details', form.description.trim());
+      const dateParts = form.date.split('-');
+      const shown = dateParts[2] + '/' + dateParts[1] + '/' + dateParts[0];
+      return '📣 ประกาศกิจกรรม\n\n📌 ' + form.title.trim() +
+        '\n📅 วันที่: ' + shown +
+        (form.description.trim() ? '\n📝 ' + form.description.trim() : '') +
+        '\n\n📅 เพิ่มกิจกรรมใน Google Calendar (เปิดลิงก์และกดบันทึก):\n' + url.toString();
+    }
+    async function copyAnnouncement() {
+      const field = document.getElementById('announcementText');
+      const status = document.getElementById('copyAnnouncementStatus');
+      try {
+        if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(field.value);
+        else {
+          field.focus(); field.select();
+          if (!document.execCommand('copy')) throw new Error('Copy unavailable');
+        }
+        status.textContent = '✅ คัดลอกแล้ว เปิด LINE และวางข้อความได้เลย';
+      } catch (error) {
+        field.focus();field.select();
+        status.textContent = 'กรุณาแตะค้างที่ข้อความแล้วเลือก คัดลอก';
+      }
+    }
+    document.getElementById('copyAnnouncementBtn').addEventListener('click',copyAnnouncement);
+
+    document.getElementById("createEventForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const btn = document.getElementById("btnCreate");
+      btn.disabled = true;
+      btn.innerText = "กำลังบันทึก...";
+
+      const form = {
+        type: document.getElementById("aeType").value,
+        title: document.getElementById("aeTitle").value,
+        date: document.getElementById("aeDate").value,
+        status: document.getElementById("aeStatus").value,
+        description: document.getElementById("aeDesc").value
+      };
+
+      google.script.run.withSuccessHandler(function(res) {
+        if(!res?.success){appDialog(res?.error || "สร้างกิจกรรมไม่สำเร็จ");btn.disabled=false;btn.innerText="บันทึก & เพิ่มลงปฏิทิน";return;}
+        const panel=document.getElementById('announcementPanel');
+        document.getElementById('announcementText').value=announcementForEvent(form);
+        document.getElementById('copyAnnouncementStatus').textContent='';
+        panel.style.display='block';
+        appDialog('สร้างกิจกรรมสำเร็จแล้ว สามารถคัดลอกข้อความส่งใน LINE ได้');
+        fetchData();
+        btn.disabled = false;
+        btn.innerText = "บันทึก & เพิ่มลงปฏิทิน";
+        document.getElementById("createEventForm").reset();
+      }).withFailureHandler(function(err){appDialog(String(err));btn.disabled=false;btn.innerText="บันทึก & เพิ่มลงปฏิทิน";}).createNewEvent(form);
+    });
+
+    document.getElementById("addMemberForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const btn = document.getElementById("btnAddMember");
+      btn.disabled = true;
+      btn.innerText = "กำลังบันทึก...";
+
+      const form = {
+        name: document.getElementById("amName").value,
+        deathDate: document.getElementById("amDeathDate").value,
+        contact: document.getElementById("amContact").value,
+        phone: document.getElementById("amPhone").value
+      };
+
+      google.script.run.withSuccessHandler(function(res) {
+        if(!res?.success){appDialog(res?.error || "บันทึกสมาชิกไม่สำเร็จ");btn.disabled=false;btn.innerText="บันทึกรายชื่อ";return;}
+        appDialog("บันทึกสมาชิกเรียบร้อย!");
+        fetchData();
+        btn.disabled = false;
+        btn.innerText = "บันทึกรายชื่อ";
+        document.getElementById("addMemberForm").reset();
+      }).withFailureHandler(function(err){appDialog(String(err));btn.disabled=false;btn.innerText="บันทึกรายชื่อ";}).addMember(form);
+    });
+  </script>
+</body>
+</html>
