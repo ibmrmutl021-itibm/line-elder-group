@@ -106,6 +106,16 @@
             </select>
           </div>
 
+          <!-- รายชื่อผู้ตอบ: แสดงหลังเลือกกิจกรรม -->
+          <section class="card-box" id="memberResponseSummary" aria-live="polite">
+            <h4 class="fw-bold text-primary">👥 สถานะการตอบกิจกรรม</h4>
+            <div id="responseCounts" class="mb-2"></div>
+            <details id="responseDetails" class="border rounded p-3">
+              <summary class="fw-bold" style="cursor:pointer;min-height:44px">แตะเพื่อดูรายชื่อผู้ตอบและผู้ยังไม่ตอบ</summary>
+              <div id="responseNames" class="mt-3"></div>
+            </details>
+          </section>
+
           <!-- รายละเอียดกิจกรรม -->
           <div class="card-box border-top border-5 border-primary">
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -458,6 +468,7 @@ window.google={script:{get run(){
         currentEvent = activeList[0];
         displaySelectedEvent(currentEvent);
         renderMemberOptions(data.members || []);
+        renderMemberResponseSummary();
       }
 
       document.getElementById("memberCount").innerText = (data.members || []).length;
@@ -466,12 +477,46 @@ window.google={script:{get run(){
       renderHistoryDropdown(data.allEvents || []);
     }
 
+    function renderMemberResponseSummary() {
+      const counts = document.getElementById('responseCounts');
+      const area = document.getElementById('responseNames');
+      const details = document.getElementById('responseDetails');
+      if (!counts || !area || !currentEvent || !globalData) return;
+      const members = globalData.members || [];
+      const answerMap = globalData.userResponses || {};
+      const groups = new Map();
+      const unanswered = [];
+      members.forEach(m => {
+        const record = answerMap[currentEvent.id + '__' + m.id];
+        if (record && record.choice) {
+          const key = String(record.choice);
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key).push(m.name);
+        } else unanswered.push(m.name);
+      });
+      const responded = members.length - unanswered.length;
+      counts.innerHTML = '<div class="fs-5 fw-bold">ตอบแล้ว ' + responded + ' / ' + members.length +
+        ' คน · ยังไม่ตอบ ' + unanswered.length + ' คน</div>' +
+        Array.from(groups.entries()).map(([choice, names]) =>
+          '<span class="badge bg-primary m-1 p-2" style="font-size:1rem">' +
+          esc(choice) + ': ' + names.length + ' คน</span>').join('');
+      const makeGroup = (title, names) =>
+        '<div class="mt-3"><div class="fw-bold fs-5">' + esc(title) + ' (' + names.length + ' คน)</div>' +
+        (names.length ? '<ol class="mb-1 ps-4">' + names.map(name =>
+          '<li class="py-1">' + esc(name) + '</li>').join('') + '</ol>' :
+          '<div class="text-muted">ไม่มีรายชื่อ</div>') + '</div>';
+      area.innerHTML = Array.from(groups.entries()).map(([choice, names]) =>
+        makeGroup(choice, names)).join('') + makeGroup('ยังไม่ตอบ', unanswered);
+      details.open = false;
+    }
+
     function onSelectActiveEvent(eventId) {
       if (!globalData || !globalData.activeEvents) return;
       const found = globalData.activeEvents.find(function(e) { return e.id === eventId; });
       if (found) {
         currentEvent = found;
         displaySelectedEvent(currentEvent);
+        renderMemberResponseSummary();
         // ตรวจสอบคำตอบของชื่อที่กำลังเลือกอยู่
         const currentMember = document.getElementById("memberSelect").value;
         checkMemberAnswer(currentMember);
@@ -595,6 +640,7 @@ window.google={script:{get run(){
 
               // แสดงกล่องแจ้งเตือนคำตอบที่อัปเดตแล้ว
               checkMemberAnswer(memberName);
+              renderMemberResponseSummary();
 
               // โหลดผลสรุปถ้าเปิดดูอยู่
               loadEventResponses(currentEvent.id);
