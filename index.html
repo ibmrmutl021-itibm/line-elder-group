@@ -278,6 +278,13 @@
               </div>
               <button type="submit" class="btn btn-success w-100 fw-bold py-2" id="btnCreate">บันทึก & เพิ่มลงปฏิทิน</button>
             </form>
+            <section id="announcementPanel" class="mt-3 p-3 rounded border border-success" style="display:none" aria-live="polite">
+              <h5 class="fw-bold">📣 ข้อความประกาศสำหรับ LINE</h5>
+              <p class="small">สร้างกิจกรรมสำเร็จแล้ว กดคัดลอกและนำไปวางในแชต LINE</p>
+              <textarea id="announcementText" class="form-control input-senior mb-2" rows="8" readonly aria-label="ข้อความประกาศ"></textarea>
+              <button type="button" class="btn btn-primary btn-senior" id="copyAnnouncementBtn">📋 คัดลอกข้อความสำหรับ LINE</button>
+              <div id="copyAnnouncementStatus" class="small" role="status"></div>
+            </section>
           </div>
 
           <div class="card-box">
@@ -748,6 +755,44 @@ window.google={script:{get run(){
       });
     }
 
+
+    // Google Calendar template uses exclusive end date for an all-day event.
+    function announcementForEvent(form) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(form.date)) throw new Error('กรุณาระบุวันที่จัดงาน');
+      const start = form.date.replace(/-/g, '');
+      const d = new Date(form.date + 'T12:00:00Z');
+      if (Number.isNaN(d.getTime()) || d.toISOString().slice(0,10) !== form.date) throw new Error('วันที่กิจกรรมไม่ถูกต้อง');
+      d.setUTCDate(d.getUTCDate() + 1);
+      const end = d.toISOString().slice(0,10).replace(/-/g, '');
+      const url = new URL('https://calendar.google.com/calendar/render');
+      url.searchParams.set('action', 'TEMPLATE');
+      url.searchParams.set('text', form.title.trim());
+      url.searchParams.set('dates', start + '/' + end);
+      url.searchParams.set('details', form.description.trim());
+      const dateParts = form.date.split('-');
+      const shown = dateParts[2] + '/' + dateParts[1] + '/' + dateParts[0];
+      return '📣 ประกาศกิจกรรม\n\n📌 ' + form.title.trim() +
+        '\n📅 วันที่: ' + shown +
+        (form.description.trim() ? '\n📝 ' + form.description.trim() : '') +
+        '\n\n📅 เพิ่มกิจกรรมใน Google Calendar (เปิดลิงก์และกดบันทึก):\n' + url.toString();
+    }
+    async function copyAnnouncement() {
+      const field = document.getElementById('announcementText');
+      const status = document.getElementById('copyAnnouncementStatus');
+      try {
+        if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(field.value);
+        else {
+          field.focus(); field.select();
+          if (!document.execCommand('copy')) throw new Error('Copy unavailable');
+        }
+        status.textContent = '✅ คัดลอกแล้ว เปิด LINE และวางข้อความได้เลย';
+      } catch (error) {
+        field.focus();field.select();
+        status.textContent = 'กรุณาแตะค้างที่ข้อความแล้วเลือก คัดลอก';
+      }
+    }
+    document.getElementById('copyAnnouncementBtn').addEventListener('click',copyAnnouncement);
+
     document.getElementById("createEventForm").addEventListener("submit", function(e) {
       e.preventDefault();
       const btn = document.getElementById("btnCreate");
@@ -764,7 +809,11 @@ window.google={script:{get run(){
 
       google.script.run.withSuccessHandler(function(res) {
         if(!res?.success){appDialog(res?.error || "สร้างกิจกรรมไม่สำเร็จ");btn.disabled=false;btn.innerText="บันทึก & เพิ่มลงปฏิทิน";return;}
-        appDialog("สร้างกิจกรรมเรียบร้อย!");
+        const panel=document.getElementById('announcementPanel');
+        document.getElementById('announcementText').value=announcementForEvent(form);
+        document.getElementById('copyAnnouncementStatus').textContent='';
+        panel.style.display='block';
+        appDialog('สร้างกิจกรรมสำเร็จแล้ว สามารถคัดลอกข้อความส่งใน LINE ได้');
         fetchData();
         btn.disabled = false;
         btn.innerText = "บันทึก & เพิ่มลงปฏิทิน";
