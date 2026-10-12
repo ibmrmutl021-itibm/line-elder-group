@@ -740,7 +740,7 @@
     function announcementForEvent(form, eventId) {
       if (!/^EVT[0-9]{1,12}$/.test(String(eventId || ''))) throw new Error('ยังไม่มีรหัสกิจกรรม กรุณาบันทึกกิจกรรมก่อน');
       const input = document.getElementById('publicCalendarSiteUrl');
-      const base = input.value.trim().replace(/\\/$/, '');
+      const base = input.value.trim().replace(/\/+$/, '');
       let origin;
       try { origin = new URL(base); } catch (err) { throw new Error('กรุณากรอก URL เว็บไซต์ Vercel ให้ถูกต้อง'); }
       if (origin.protocol !== 'https:' || !origin.hostname) throw new Error('กรุณาใช้ URL ที่ขึ้นต้นด้วย https://');
